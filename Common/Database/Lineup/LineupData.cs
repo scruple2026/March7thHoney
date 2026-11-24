@@ -198,13 +198,23 @@ public partial class LineupInfo
             }
 
         var storyId = DatabaseHelper.Instance!.GetInstance<StoryLineData>(AvatarData!.Uid)?.CurStoryLineId;
-        if (storyId != null && storyId != 0)
+        if (storyId != null && storyId != 0 && IsExtraLineup())
         {
+            info.IsVirtual = true;
             info.GameStoryLineId = (uint)storyId;
             BaseAvatars?.ForEach(item =>
             {
-                if (item.SpecialAvatarId != 0) info.StoryLineAvatarIdList.Add((uint)item.SpecialAvatarId);
+                if (item.SpecialAvatarId != 0)
+                {
+                    var id = (uint)item.SpecialAvatarId;
+                    if (!info.StoryLineAvatarIdList.Contains(id)) info.StoryLineAvatarIdList.Add(id);
+                    if (!info.AvailableTrialAvatarIDs.Contains(id)) info.AvailableTrialAvatarIDs.Add(id);
+                }
             });
+            if (Data.GameData.StroyLineTrialAvatarDataData.TryGetValue(storyId.Value, out var storyTrial))
+                foreach (var id in storyTrial.TrialAvatarList)
+                    if (id > 0 && !info.AvailableTrialAvatarIDs.Contains((uint)id))
+                        info.AvailableTrialAvatarIDs.Add((uint)id);
         }
 
         return info;

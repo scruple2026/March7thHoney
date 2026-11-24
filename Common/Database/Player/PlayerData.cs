@@ -259,7 +259,9 @@ public partial class PrivacySettingsPb
         {
             // TODO 4.3: PlayerSettingInfo 字段在 4.3 重排，DisplayActiveState/RecentlyState/BattleRecord 暂未映射
             GNFDDPEMMFN = DisplayChallengeLineup,
-            FDHEPCKLCAM = DisplayCollection
+            FDHEPCKLCAM = DisplayCollection,
+            OJPAODIHAJE = new PNOLLIAKGDB(),
+            ANKIDJJINEI = new LJFJOGEEGPJ()
         };
     }
 }

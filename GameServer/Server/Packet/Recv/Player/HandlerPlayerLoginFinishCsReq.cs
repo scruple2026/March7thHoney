@@ -23,6 +23,7 @@ public class HandlerPlayerLoginFinishCsReq : PlayerHandler
 
         await connection.SendPacket(new PacketFinishedMissionScNotify(
             player?.MissionManager?.Data.FinishedMainMissionIds ?? []));
+        if (player?.StoryLineManager != null) await player.StoryLineManager.OnLoginFinish();
         var daily = player?.GetComponentOrDefault<DailyActiveManager>();
         if (daily != null) await connection.SendPacket(new PacketDailyActiveInfoNotify(daily));
         await SendHoyoToonLuaAutoRun(connection);
