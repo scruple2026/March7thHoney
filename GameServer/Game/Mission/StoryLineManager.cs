@@ -52,6 +52,11 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
         }
 
         Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus, avatarList);
+        if (Player.LineupManager.GetCurLineup() is { } extraLineup)
+        {
+            extraLineup.IsVirtual = true;
+            extraLineup.PlaneId = entryId > 0 ? entryId / 100 : storyExcel.InitEntranceID / 100;
+        }
 
         StoryLineData.CurStoryLineId = storyExcel.StoryLineID;
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));
@@ -245,8 +250,19 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
             {
                 var avatarList = BuildStoryLineTrialList(trialExcel);
                 Player.LineupManager.SetExtraLineup(ExtraLineupType.LineupHeliobus, avatarList);
+                if (Player.LineupManager.GetCurLineup() is { } repaired)
+                {
+                    repaired.IsVirtual = true;
+                    repaired.PlaneId = Player.Data.PlaneId;
+                }
                 if (StoryLineData.RunningStoryLines.TryGetValue(StoryLineData.CurStoryLineId, out var rec))
                     rec.Lineup = Player.LineupManager.GetCurLineup()!.BaseAvatars!;
+                DatabaseHelper.MarkDirty(Player.Uid);
+            }
+            else if (cur is { IsVirtual: false })
+            {
+                cur.IsVirtual = true;
+                if (cur.PlaneId == 0) cur.PlaneId = Player.Data.PlaneId;
                 DatabaseHelper.MarkDirty(Player.Uid);
             }
         }
