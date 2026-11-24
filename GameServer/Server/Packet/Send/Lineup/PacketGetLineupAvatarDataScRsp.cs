@@ -21,17 +21,6 @@ public class PacketGetLineupAvatarDataScRsp : BasePacket
             rsp.AvatarDataList.Add(data);
         });
 
-        player.AvatarManager?.Data?.TrialAvatars?.ForEach(avatar =>
-        {
-            if (avatar.SpecialAvatarId <= 0) return;
-            rsp.AvatarDataList.Add(new LineupAvatarData
-            {
-                Id = (uint)avatar.SpecialAvatarId,
-                Hp = (uint)avatar.ExtraLineupHp,
-                AvatarType = AvatarType.AvatarTrialType
-            });
-        });
-
         SetData(rsp);
     }
 }

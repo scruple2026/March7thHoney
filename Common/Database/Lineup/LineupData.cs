@@ -198,10 +198,13 @@ public partial class LineupInfo
             }
 
         var storyId = DatabaseHelper.Instance!.GetInstance<StoryLineData>(AvatarData!.Uid)?.CurStoryLineId;
-        if (storyId != null && storyId != 0 && IsExtraLineup())
+        if (storyId != null && storyId != 0)
         {
-            info.IsVirtual = true;
             info.GameStoryLineId = (uint)storyId;
+            BaseAvatars?.ForEach(item =>
+            {
+                if (item.SpecialAvatarId != 0) info.StoryLineAvatarIdList.Add((uint)item.SpecialAvatarId);
+            });
         }
 
         return info;

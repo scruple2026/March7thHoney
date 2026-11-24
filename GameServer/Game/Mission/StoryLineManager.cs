@@ -39,24 +39,10 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
         StoryLineData.OldPos = Player.Data.Pos!;
         StoryLineData.OldRot = Player.Data.Rot!;
 
-        List<int> avatarList;
-        if (GameData.StroyLineTrialAvatarDataData.TryGetValue(storyExcel.StoryLineID, out var trialExcel) &&
-            trialExcel.InitTrialAvatarList.Count > 0)
-        {
-            avatarList = BuildStoryLineTrialList(trialExcel);
-        }
-        else
-        {
-            avatarList = Player.LineupManager!.GetCurLineup()!.BaseAvatars!
-                .Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId : x.BaseAvatarId).ToList();
-        }
+        var avatarList = Player.LineupManager!.GetCurLineup()!.BaseAvatars!
+            .Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId / 10 : x.BaseAvatarId).ToList();
 
         Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus, avatarList);
-        if (Player.LineupManager.GetCurLineup() is { } extraLineup)
-        {
-            extraLineup.IsVirtual = true;
-            extraLineup.PlaneId = entryId > 0 ? entryId / 100 : storyExcel.InitEntranceID / 100;
-        }
 
         StoryLineData.CurStoryLineId = storyExcel.StoryLineID;
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));
@@ -120,18 +106,8 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
             await LeaveStoryLine(false);
         }
 
-        var enterAvatars = lineInfo.Lineup.Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId : x.BaseAvatarId).ToList();
-        if (GameData.StroyLineTrialAvatarDataData.TryGetValue(lineInfo.StoryLineId, out var enterTrial) &&
-            enterTrial.InitTrialAvatarList.Count > 0 &&
-            !enterAvatars.Any(id => enterTrial.InitTrialAvatarList.Contains(id)))
-            enterAvatars = BuildStoryLineTrialList(enterTrial);
-
-        Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus, enterAvatars);
-        if (Player.LineupManager.GetCurLineup() is { } enteredExtra)
-        {
-            enteredExtra.IsVirtual = true;
-            enteredExtra.PlaneId = lineInfo.SavedPlaneId != 0 ? lineInfo.SavedPlaneId : Player.Data.PlaneId;
-        }
+        Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus,
+            lineInfo.Lineup.Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId : x.BaseAvatarId).ToList());
 
         StoryLineData.CurStoryLineId = lineInfo.StoryLineId;
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));
@@ -248,46 +224,6 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
 
     public async ValueTask OnLogin()
     {
-        if (StoryLineData.CurStoryLineId > 0 &&
-            GameData.StroyLineTrialAvatarDataData.TryGetValue(StoryLineData.CurStoryLineId, out var trialExcel) &&
-            trialExcel.InitTrialAvatarList.Count > 0)
-        {
-            var cur = Player.LineupManager!.GetCurLineup();
-            var hasTrials = cur != null && cur.IsExtraLineup() &&
-                            cur.BaseAvatars?.Any(a => a.SpecialAvatarId != 0 &&
-                                                      trialExcel.InitTrialAvatarList.Contains(a.SpecialAvatarId)) == true;
-            if (!hasTrials)
-            {
-                var avatarList = BuildStoryLineTrialList(trialExcel);
-                Player.LineupManager.SetExtraLineup(ExtraLineupType.LineupHeliobus, avatarList);
-                if (Player.LineupManager.GetCurLineup() is { } repaired)
-                {
-                    repaired.IsVirtual = true;
-                    repaired.PlaneId = Player.Data.PlaneId;
-                }
-                if (StoryLineData.RunningStoryLines.TryGetValue(StoryLineData.CurStoryLineId, out var rec))
-                    rec.Lineup = Player.LineupManager.GetCurLineup()!.BaseAvatars!;
-                DatabaseHelper.MarkDirty(Player.Uid);
-            }
-            else if (cur is { IsVirtual: false })
-            {
-                cur.IsVirtual = true;
-                if (cur.PlaneId == 0) cur.PlaneId = Player.Data.PlaneId;
-                DatabaseHelper.MarkDirty(Player.Uid);
-            }
-        }
-
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));
-    }
-
-    private static List<int> BuildStoryLineTrialList(Data.Excel.StroyLineTrialAvatarDataExcel trialExcel)
-    {
-        var list = new List<int>();
-        if (trialExcel.CaptainAvatarID > 0 && trialExcel.InitTrialAvatarList.Contains(trialExcel.CaptainAvatarID))
-            list.Add(trialExcel.CaptainAvatarID);
-        foreach (var id in trialExcel.InitTrialAvatarList)
-            if (id > 0 && !list.Contains(id))
-                list.Add(id);
-        return list;
     }
 }
