@@ -1,6 +1,7 @@
 using March7thHoney.Data;
 using March7thHoney.Data.Excel;
 using March7thHoney.Enums.Mission;
+using March7thHoney.GameServer.Game.Mission;
 using March7thHoney.GameServer.Game.Player;
 using March7thHoney.Kcp;
 using March7thHoney.Proto;
@@ -38,11 +39,16 @@ public class PacketGetMissionDataScRsp : BasePacket
 
         foreach (var mission in GameData.MainMissionData.Keys)
             if (player.MissionManager!.GetMainMissionStatus(mission) == MissionPhaseEnum.Accept)
-                proto.MainMissionList.Add(new MainMission
+            {
+                var mainProto = new MainMission
                 {
                     Id = (uint)mission,
                     Status = MissionStatus.MissionDoing
-                });
+                };
+                if (player.MissionManager.Data.MainMissionCustomValues.TryGetValue(mission, out var records))
+                    MissionSyncBuilder.FillMainCustomValues(mainProto, records);
+                proto.MainMissionList.Add(mainProto);
+            }
 
         // Prepared mains ride the same list, and their opener subs ride mission_list as Prepared: the
         // client builds a quest row from its subs, so a main without one shows no locked entry.

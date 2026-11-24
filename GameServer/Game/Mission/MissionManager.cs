@@ -868,7 +868,43 @@ public partial class MissionManager(PlayerInstance player) : BasePlayerManager<M
         return false;
     }
 
-    private void UpsertCustomValues(int mainMissionId, List<MissionCustomValue> values)
+    public void StoreCustomValues(IReadOnlyList<MissionCustomValue> values, int missionId)
+    {
+        if (!Enabled || values.Count == 0) return;
+        if (!GameData.SubMissionInfoData.TryGetValue(missionId, out var subMission)) return;
+        UpsertCustomValues(subMission.MainMissionId, values);
+        DatabaseHelper.MarkDirty(Player.Uid);
+    }
+
+    public async ValueTask<MainMission> UpdateMainMissionCustomValue(int mainMissionId, string key, uint value)
+    {
+        var incoming = new MissionCustomValue
+        {
+            BGDFHBAANLB = key ?? string.Empty,
+            CustomValue = value
+        };
+        if (Enabled && mainMissionId > 0)
+        {
+            UpsertCustomValues(mainMissionId, [incoming]);
+            DatabaseHelper.MarkDirty(Player.Uid);
+            var sync = new MissionSync();
+            if (Data.MainMissionCustomValues.TryGetValue(mainMissionId, out var records))
+                MissionSyncBuilder.AttachCustomValues(sync, mainMissionId, records);
+            if (sync.NLPKLNDCMOC.Count > 0)
+                await Player.SendPacket(new PacketPlayerSyncScNotify(sync));
+        }
+
+        var mainProto = new MainMission
+        {
+            Id = (uint)mainMissionId,
+            Status = GetMainMissionStatus(mainMissionId).ToProto()
+        };
+        if (Data.MainMissionCustomValues.TryGetValue(mainMissionId, out var stored))
+            MissionSyncBuilder.FillMainCustomValues(mainProto, stored);
+        return mainProto;
+    }
+
+    private void UpsertCustomValues(int mainMissionId, IReadOnlyList<MissionCustomValue> values)
     {
         if (!Data.MainMissionCustomValues.TryGetValue(mainMissionId, out var existing))
         {

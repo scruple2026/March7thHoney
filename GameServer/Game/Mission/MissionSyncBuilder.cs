@@ -27,7 +27,6 @@ public static class MissionSyncBuilder
             Id = (uint)subId,
             Status = MissionStatus.MissionDoing
         });
-        if (subId > 0) sync.LEBFLAKCJCM.Add((uint)subId);
     }
 
     public static void NotePreparedSub(MissionSync sync, int subId)

@@ -14,4 +14,18 @@ public class PacketFinishTalkMissionScRsp : BasePacket
 
         SetData(proto);
     }
+
+    public PacketFinishTalkMissionScRsp(FinishTalkMissionCsReq req) : base(CmdIds.FinishTalkMissionScRsp)
+    {
+        var proto = new FinishTalkMissionScRsp
+        {
+            TalkStr = req.TalkStr ?? string.Empty,
+            SubMissionId = req.SubMissionId
+        };
+
+        if (req.CustomValueList != null && req.CustomValueList.Count > 0)
+            proto.CustomValueList.AddRange(req.CustomValueList);
+
+        SetData(proto);
+    }
 }
