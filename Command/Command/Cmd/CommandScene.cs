@@ -339,4 +339,29 @@ public class CommandScene : ICommand
         await player.MoveTo(new Position((int)posVec.X, (int)posVec.Y, (int)posVec.Z));
         await arg.SendMsg(I18NManager.Translate("Game.Command.Scene.Teleported"));
     }
+
+    [CommandMethod("0 pos")]
+    public async ValueTask TeleportPos(CommandArg arg)
+    {
+        if (arg.Target == null)
+        {
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Notice.PlayerNotFound"));
+            return;
+        }
+
+        if (arg.Args.Count < 4 ||
+            !float.TryParse(arg.Args[1], System.Globalization.CultureInfo.InvariantCulture, out var x) ||
+            !float.TryParse(arg.Args[2], System.Globalization.CultureInfo.InvariantCulture, out var y) ||
+            !float.TryParse(arg.Args[3], System.Globalization.CultureInfo.InvariantCulture, out var z))
+        {
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Notice.InvalidArguments"));
+            return;
+        }
+
+        var player = arg.Target.Player!;
+        await player.MoveTo(new Position((int)MathF.Round(x * 1000f), (int)MathF.Round(y * 1000f),
+            (int)MathF.Round(z * 1000f)));
+        March7thHoney.Database.DatabaseHelper.MarkDirty(player.Uid);
+        await arg.SendMsg(I18NManager.Translate("Game.Command.Scene.Teleported"));
+    }
 }
