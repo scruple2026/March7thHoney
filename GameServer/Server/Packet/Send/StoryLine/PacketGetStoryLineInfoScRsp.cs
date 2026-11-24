@@ -20,9 +20,6 @@ public class PacketGetStoryLineInfoScRsp : BasePacket
         if (curId != 0 && !proto.UnfinishedStoryLineIdList.Contains((uint)curId))
             proto.UnfinishedStoryLineIdList.Add((uint)curId);
 
-        if (GameData.StroyLineTrialAvatarDataData.TryGetValue(curId, out var storyExcel))
-            proto.TrialAvatarIdList.AddRange(storyExcel.InitTrialAvatarList.Select(x => (uint)x));
-
         SetData(proto);
     }
 }

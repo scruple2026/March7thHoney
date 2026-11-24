@@ -39,14 +39,8 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
         StoryLineData.OldPos = Player.Data.Pos!;
         StoryLineData.OldRot = Player.Data.Rot!;
 
-        List<int> avatarList;
-        var hasTrialExcel = GameData.StroyLineTrialAvatarDataData.TryGetValue(storyExcel.StoryLineID, out var trialExcel) &&
-                            trialExcel.InitTrialAvatarList.Count > 0;
-        if (hasTrialExcel)
-            avatarList = BuildStoryLineTrialList(trialExcel!);
-        else
-            avatarList = Player.LineupManager!.GetCurLineup()!.BaseAvatars!
-                .Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId : x.BaseAvatarId).ToList();
+        var avatarList = Player.LineupManager!.GetCurLineup()!.BaseAvatars!
+            .Select(x => x.BaseAvatarId).ToList();
 
         Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus, avatarList);
         if (Player.LineupManager.GetCurLineup() is { } extraLineup)
@@ -57,12 +51,6 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
 
         StoryLineData.CurStoryLineId = storyExcel.StoryLineID;
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));
-        if (hasTrialExcel)
-        {
-            var planeId = Player.LineupManager.GetCurLineup()?.PlaneId ?? Player.Data.PlaneId;
-            await Player.SendPacket(new PacketStoryLineTrialAvatarChangeScNotify(avatarList, [], true));
-            await Player.SendPacket(new PacketVirtualLineupTrialAvatarChangeScNotify(planeId, avatarList, [], true));
-        }
         await Player.SendPacket(new PacketSyncLineupNotify(Player.LineupManager!.GetCurLineup()!));
         if (entryId > 0)
         {
@@ -123,12 +111,7 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
             await LeaveStoryLine(false);
         }
 
-        var enterAvatars = lineInfo.Lineup.Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId : x.BaseAvatarId).ToList();
-        var hasEnterTrials = GameData.StroyLineTrialAvatarDataData.TryGetValue(lineInfo.StoryLineId, out var enterTrial) &&
-                             enterTrial.InitTrialAvatarList.Count > 0;
-        if (hasEnterTrials && !enterAvatars.Any(id => enterTrial!.InitTrialAvatarList.Contains(id)))
-            enterAvatars = BuildStoryLineTrialList(enterTrial!);
-
+        var enterAvatars = lineInfo.Lineup.Select(x => x.BaseAvatarId).ToList();
         Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus, enterAvatars);
         if (Player.LineupManager.GetCurLineup() is { } enteredExtra)
         {
@@ -138,12 +121,6 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
 
         StoryLineData.CurStoryLineId = lineInfo.StoryLineId;
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));
-        if (hasEnterTrials)
-        {
-            var planeId = Player.LineupManager.GetCurLineup()?.PlaneId ?? Player.Data.PlaneId;
-            await Player.SendPacket(new PacketStoryLineTrialAvatarChangeScNotify(enterTrial!.InitTrialAvatarList, [], true));
-            await Player.SendPacket(new PacketVirtualLineupTrialAvatarChangeScNotify(planeId, enterTrial.InitTrialAvatarList, [], true));
-        }
         await Player.SendPacket(new PacketSyncLineupNotify(Player.LineupManager!.GetCurLineup()!));
 
         if (tp)
@@ -257,18 +234,16 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
 
     public ValueTask OnLogin()
     {
-        if (StoryLineData.CurStoryLineId > 0 &&
-            GameData.StroyLineTrialAvatarDataData.TryGetValue(StoryLineData.CurStoryLineId, out var trialExcel) &&
-            trialExcel.InitTrialAvatarList.Count > 0)
+        if (StoryLineData.CurStoryLineId > 0)
         {
             var cur = Player.LineupManager!.GetCurLineup();
-            var hasTrials = cur != null && cur.IsExtraLineup() &&
-                            cur.BaseAvatars?.Any(a => a.SpecialAvatarId != 0 &&
-                                                      trialExcel.InitTrialAvatarList.Contains(a.SpecialAvatarId)) == true;
-            if (!hasTrials)
+            if (cur != null && cur.IsExtraLineup() && cur.BaseAvatars?.Any(a => a.SpecialAvatarId != 0) == true)
             {
-                var avatarList = BuildStoryLineTrialList(trialExcel);
-                Player.LineupManager.SetExtraLineup(ExtraLineupType.LineupHeliobus, avatarList);
+                var formalIds = cur.BaseAvatars.Select(a => a.BaseAvatarId).Distinct().ToList();
+                if (formalIds.Count == 0)
+                    formalIds = Player.LineupManager.GetLineup(Player.LineupManager.Data.CurLineup)?.BaseAvatars?
+                        .Select(a => a.BaseAvatarId).ToList() ?? [];
+                Player.LineupManager.SetExtraLineup(ExtraLineupType.LineupHeliobus, formalIds);
                 if (Player.LineupManager.GetCurLineup() is { } repaired)
                 {
                     repaired.IsVirtual = true;
@@ -276,12 +251,6 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
                 }
                 if (StoryLineData.RunningStoryLines.TryGetValue(StoryLineData.CurStoryLineId, out var rec))
                     rec.Lineup = Player.LineupManager.GetCurLineup()!.BaseAvatars!;
-                DatabaseHelper.MarkDirty(Player.Uid);
-            }
-            else if (cur is { IsVirtual: false })
-            {
-                cur.IsVirtual = true;
-                if (cur.PlaneId == 0) cur.PlaneId = Player.Data.PlaneId;
                 DatabaseHelper.MarkDirty(Player.Uid);
             }
         }
@@ -292,25 +261,5 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
     public async ValueTask OnLoginFinish()
     {
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));
-        if (StoryLineData.CurStoryLineId > 0 &&
-            GameData.StroyLineTrialAvatarDataData.TryGetValue(StoryLineData.CurStoryLineId, out var trialExcel) &&
-            trialExcel.InitTrialAvatarList.Count > 0)
-        {
-            var trialIds = BuildStoryLineTrialList(trialExcel);
-            var planeId = Player.LineupManager?.GetCurLineup()?.PlaneId ?? Player.Data.PlaneId;
-            await Player.SendPacket(new PacketStoryLineTrialAvatarChangeScNotify(trialIds, [], false));
-            await Player.SendPacket(new PacketVirtualLineupTrialAvatarChangeScNotify(planeId, trialIds, [], false));
-        }
-    }
-
-    private static List<int> BuildStoryLineTrialList(Data.Excel.StroyLineTrialAvatarDataExcel trialExcel)
-    {
-        var list = new List<int>();
-        if (trialExcel.CaptainAvatarID > 0 && trialExcel.InitTrialAvatarList.Contains(trialExcel.CaptainAvatarID))
-            list.Add(trialExcel.CaptainAvatarID);
-        foreach (var id in trialExcel.InitTrialAvatarList)
-            if (id > 0 && !list.Contains(id))
-                list.Add(id);
-        return list;
     }
 }

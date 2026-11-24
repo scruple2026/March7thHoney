@@ -22,10 +22,6 @@ public class PacketStoryLineInfoScNotify : BasePacket
         if (!proto.UnfinishedStoryLineIdList.Contains(proto.CurStoryLineId))
             proto.UnfinishedStoryLineIdList.Add(proto.CurStoryLineId);
 
-        GameData.StroyLineTrialAvatarDataData.TryGetValue(player.StoryLineManager!.StoryLineData.CurStoryLineId,
-            out var storyExcel);
-        if (storyExcel != null) proto.TrialAvatarIdList.AddRange(storyExcel.InitTrialAvatarList.Select(x => (uint)x));
-
         SetData(proto);
     }
 }
