@@ -119,7 +119,11 @@ public partial class SceneInstance
 
     private static bool IsMainMissionStateValue(string name)
     {
-        return name is "SceneStateByMainMission" or "WorldStateByMainMission";
+        return name is "SceneStateByMainMission" or "WorldStateByMainMission"
+            || name.StartsWith("FSV_FinishMainLine", StringComparison.Ordinal)
+            || name.StartsWith("FSV_LockMainLine", StringComparison.Ordinal)
+            || name.StartsWith("FSV_Final", StringComparison.Ordinal)
+            || name is "FSV_IsInFiveDim" or "FSV_InBuildRobot5D" or "FSV_InCity_AsRobot";
     }
 
     // Initial snapshots and LOADED notifications must describe the same complete group.
