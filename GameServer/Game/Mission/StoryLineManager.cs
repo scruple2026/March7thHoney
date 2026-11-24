@@ -120,8 +120,18 @@ public class StoryLineManager(PlayerInstance player) : BasePlayerManager(player)
             await LeaveStoryLine(false);
         }
 
-        Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus,
-            lineInfo.Lineup.Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId : x.BaseAvatarId).ToList());
+        var enterAvatars = lineInfo.Lineup.Select(x => x.SpecialAvatarId > 0 ? x.SpecialAvatarId : x.BaseAvatarId).ToList();
+        if (GameData.StroyLineTrialAvatarDataData.TryGetValue(lineInfo.StoryLineId, out var enterTrial) &&
+            enterTrial.InitTrialAvatarList.Count > 0 &&
+            !enterAvatars.Any(id => enterTrial.InitTrialAvatarList.Contains(id)))
+            enterAvatars = BuildStoryLineTrialList(enterTrial);
+
+        Player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupHeliobus, enterAvatars);
+        if (Player.LineupManager.GetCurLineup() is { } enteredExtra)
+        {
+            enteredExtra.IsVirtual = true;
+            enteredExtra.PlaneId = lineInfo.SavedPlaneId != 0 ? lineInfo.SavedPlaneId : Player.Data.PlaneId;
+        }
 
         StoryLineData.CurStoryLineId = lineInfo.StoryLineId;
         await Player.SendPacket(new PacketStoryLineInfoScNotify(Player));

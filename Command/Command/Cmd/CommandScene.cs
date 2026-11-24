@@ -182,7 +182,8 @@ public class CommandScene : ICommand
 
         var player = arg.Target!.Player!;
         var entryId = player.Data.EntryId;
-        var result = await player.TryEnterScene(entryId, 0, true);
+        var storyLineId = player.StoryLineManager?.StoryLineData.CurStoryLineId ?? 0;
+        var result = await player.TryEnterScene(entryId, 0, true, storyLineId);
         if (!result.Success)
         {
             await arg.SendMsg(I18NManager.Translate("Game.Command.Scene.SceneEnterFailed", entryId.ToString()));
