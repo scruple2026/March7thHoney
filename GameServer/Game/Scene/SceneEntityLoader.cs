@@ -357,7 +357,7 @@ public class SceneEntityLoader(SceneInstance scene)
     {
         // IsClientOnly/LoadOnInitial alone are not server-prop exclusions: runtime exports also set
         // them on usable server props. Keep exclusions consistent for direct and group creation.
-        if (info.IsDelete || IsIncompatibleGroup(group) || IsIncompatibleProp(group, info)) return null;
+        if (info.IsClientOnly || info.IsDelete || IsIncompatibleGroup(group) || IsIncompatibleProp(group, info)) return null;
 
         GameData.MazePropData.TryGetValue(info.PropID, out var excel);
         if (excel == null) return null;
