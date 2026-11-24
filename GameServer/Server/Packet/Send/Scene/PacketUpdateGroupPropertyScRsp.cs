@@ -20,11 +20,12 @@ public class PacketUpdateGroupPropertyScRsp : BasePacket
     {
         var proto = new UpdateGroupPropertyScRsp
         {
-            // TODO 4.3: 字段名变更 (ELKOCIJNABK/FNAODNGJAMM/ELNCJFFJFIH)，需重新确认 NewValue/OldValue 对应
             DimensionId = req.DimensionId,
             FloorId = req.FloorId,
             GroupId = (uint)data.GroupId,
-            PropertyName = data.PropertyName
+            PropertyName = data.PropertyName,
+            OldValue = data.OldValue,
+            NewValue = data.NewValue
         };
 
         SetData(proto);

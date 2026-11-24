@@ -57,8 +57,37 @@ public partial class SceneInstance
             foreach (var key in group.ControlFloorSavedValue)
                 await UpdateFloorSavedValue(key, value);
 
+        await SyncLittleGameFloorSavedValue(name, value);
+
         return res;
     }
+
+    private async ValueTask SyncLittleGameFloorSavedValue(string propertyName, int value)
+    {
+        if (!propertyName.StartsWith("LG_", StringComparison.Ordinal) || FloorInfo?.FloorSavedValue == null)
+            return;
+
+        var secondUnderscore = propertyName.IndexOf('_', 3);
+        if (secondUnderscore <= 3 || secondUnderscore + 1 >= propertyName.Length)
+            return;
+
+        var normalizedProp = NormalizeLittleGameKey(propertyName[(secondUnderscore + 1)..]);
+        if (normalizedProp.Length == 0)
+            return;
+
+        foreach (var fsv in FloorInfo.FloorSavedValue)
+        {
+            if (string.IsNullOrEmpty(fsv.Name)) continue;
+            var fsvBody = fsv.Name.StartsWith("FSV_", StringComparison.OrdinalIgnoreCase)
+                ? fsv.Name[4..]
+                : fsv.Name;
+            if (string.Equals(NormalizeLittleGameKey(fsvBody), normalizedProp, StringComparison.Ordinal))
+                await UpdateFloorSavedValue(fsv.Name, value);
+        }
+    }
+
+    private static string NormalizeLittleGameKey(string key) =>
+        key.ToLowerInvariant().Replace("finished", "finish");
 
     public async ValueTask UpdateFloorSavedValue(string name, int value)
     {
